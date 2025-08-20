@@ -1,0 +1,30 @@
+name: Deploy to Railway
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Railway
+      uses: railway/deploy@v1
+      with:
+        service: onlyai-telegram-agent
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    
+    - name: Wait for deployment
+      run: sleep 30
+    
+    - name: Check deployment status
+      run: |
+        echo "Checking deployment status..."
+        curl -f ${{ secrets.RAILWAY_URL }}/health || echo "Health check failed"
+

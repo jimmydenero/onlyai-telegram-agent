@@ -11,20 +11,43 @@ from pathlib import Path
 # Add the current directory to Python path
 sys.path.append(str(Path(__file__).parent))
 
-from app.main import app
-from app.bot import set_webhook
-from app.config import settings
-import uvicorn
+def check_environment():
+    """Check if required environment variables are set"""
+    required_vars = [
+        "OPENAI_API_KEY",
+        "TELEGRAM_BOT_TOKEN", 
+        "DATABASE_URL",
+        "ADMIN_TOKEN"
+    ]
+    
+    missing_vars = []
+    for var in required_vars:
+        if not os.environ.get(var):
+            missing_vars.append(var)
+    
+    if missing_vars:
+        print("❌ Missing required environment variables:")
+        for var in missing_vars:
+            print(f"   - {var}")
+        print("\n📝 Please set these variables in Railway dashboard:")
+        print("   Go to your Railway project → Variables tab")
+        print("   Add the missing environment variables")
+        return False
+    
+    print("✅ All required environment variables are set")
+    return True
 
 async def setup_webhook():
     """Set up webhook for Railway deployment"""
     try:
         print("🔗 Setting up Telegram webhook...")
         # Check if we have the required environment variables
-        if not settings.telegram_webhook_base:
+        if not os.environ.get("TELEGRAM_WEBHOOK_BASE"):
             print("⚠️  TELEGRAM_WEBHOOK_BASE not set, skipping webhook setup")
             return
             
+        # Import here to avoid issues with missing env vars
+        from app.bot import set_webhook
         success = await set_webhook()
         if success:
             print("✅ Webhook set successfully")
@@ -38,6 +61,12 @@ def main():
     """Main startup function for Railway"""
     print("🚀 Starting OnlyAI Telegram Agent on Railway...")
     print("=" * 50)
+    
+    # Check environment variables first
+    if not check_environment():
+        print("\n🛑 Cannot start without required environment variables")
+        print("💡 Set the missing variables in Railway dashboard and redeploy")
+        sys.exit(1)
     
     try:
         # Set up webhook asynchronously
@@ -55,6 +84,7 @@ def main():
     print("⏹️  Press Ctrl+C to stop")
     
     try:
+        import uvicorn
         uvicorn.run(
             "app.main:app",
             host=host,
