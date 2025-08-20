@@ -17,8 +17,21 @@ from app.utils.text import should_keep_message
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from message_classifier import classifier
-from message_storage import storage
+try:
+    from message_classifier import classifier
+    from message_storage import storage
+except ImportError as e:
+    print(f"⚠️  Monitoring modules not found: {e}")
+    # Create dummy objects to prevent crashes
+    class DummyClassifier:
+        async def classify_message(self, text, username):
+            return {"category": "USELESS", "should_store": False}
+    classifier = DummyClassifier()
+    
+    class DummyStorage:
+        def add_message(self, msg): pass
+        def get_stats(self): return {"total_messages": 0, "by_category": {}, "by_user": {}, "recent_activity": 0}
+    storage = DummyStorage()
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
